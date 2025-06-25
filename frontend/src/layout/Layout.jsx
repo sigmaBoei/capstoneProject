@@ -4,17 +4,17 @@ import Navbar from "../navigation/Navbar";
 import "bootstrap/dist/css/bootstrap.min.css"; // Import Bootstrap
 import "./style.css"; // Make sure to import the styles
 
-function Layout() {
+function Layout({ setToken }) {
   return (
     <div className="layout-container">
       {/* Sidebar */}
       <div className="sidebar-wrapper">
-        <Sidebar />
+        <Sidebar setToken={setToken} />
       </div>
 
       {/* Main Content Area */}
       <div className="main-wrapper">
-        <Navbar />
+        {/* <Navbar /> */}
         <div className="content-wrapper">
           <Outlet />
         </div>

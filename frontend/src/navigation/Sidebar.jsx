@@ -11,7 +11,7 @@ import Logo from "../assets/EcoSentryLogo.png";
 // STYLE
 import "./style.css"; // Custom CSS for styling
 
-function CustomSidebar() {
+function CustomSidebar({ setToken }) {
   const [isCollapsed, setIsCollapsed] = useState(false); // Sidebar state
   const location = useLocation();
   const navigate = useNavigate();
@@ -19,9 +19,10 @@ function CustomSidebar() {
   // Handle navigation
   const handleNavigation = (path) => {
     if (path === "logout") {
-      // Clear token and navigate to login
+      // Clear token and force reload to show login page
       localStorage.removeItem("token");
-      navigate("/");
+      setToken(null);
+      // window.location = "/"; // Force reload for guaranteed redirect
       return;
     }
     navigate(`/app${path}`);
