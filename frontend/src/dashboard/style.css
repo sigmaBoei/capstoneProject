@@ -6,6 +6,76 @@
   position: relative;
 }
 
+/* Floating Dashboard Cards */
+.dashboard-cards {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 15px;
+  z-index: 1000;
+  padding: 0 20px;
+}
+
+.stat-card {
+  background: white;
+  padding: 10px 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 140px;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.stat-icon {
+  font-size: 1.8rem;
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+
+  flex-shrink: 0;
+}
+.stat-content {
+  flex: 1;
+  text-align: center;
+}
+
+.stat-content h3 {
+  margin: 0 0 5px 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-number {
+  margin: 0 0 2px 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #333;
+  line-height: 1;
+}
+
+.stat-label {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #888;
+  font-weight: 500;
+}
+
 /* Make the map take up the full space */
 .map-container {
   width: 100%;
@@ -15,4 +85,59 @@
   left: 0;
   right: 0;
   bottom: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dashboard-cards {
+    top: 15px;
+    gap: 10px;
+    padding: 0 15px;
+  }
+
+  .stat-card {
+    padding: 12px 15px;
+    min-width: 110px;
+  }
+
+  .stat-icon {
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+  }
+
+  .stat-content h3 {
+    font-size: 0.8rem;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-cards {
+    flex-direction: column;
+    gap: 8px;
+    top: 10px;
+  }
+
+  .stat-card {
+    min-width: 200px;
+    padding: 10px 15px;
+  }
+
+  .stat-icon {
+    font-size: 1.3rem;
+    width: 35px;
+    height: 35px;
+  }
+
+  .stat-number {
+    font-size: 1.3rem;
+  }
 }

@@ -17,11 +17,8 @@ import {
 } from "@mui/material";
 // ICONS
 import {
-  Search as SearchIcon,
-  FileDownload as FileDownloadIcon,
   PictureAsPdf as PdfIcon,
-  Delete as DeleteIcon,
-  PlayArrow as PlayIcon,
+  Archive as ArchiveIcon,
 } from "@mui/icons-material";
 // COMPONENTS
 import DetectionAlert from "../components/DetectionAlert";
@@ -44,6 +41,7 @@ import { Bar, Line } from "react-chartjs-2";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import penroLogo from "../assets/penroLogo.png";
+import Swal from "sweetalert2";
 
 // Register ChartJS components
 ChartJS.register(
@@ -62,8 +60,6 @@ function Reports() {
   const [detections, setDetections] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [detectionToDelete, setDetectionToDelete] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedDevice, setSelectedDevice] = useState("all");
@@ -99,7 +95,9 @@ function Reports() {
   useEffect(() => {
     const fetchDetections = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/detection");
+        const response = await fetch(
+          "http://localhost:5000/api/detection?includeArchived=false"
+        );
         const data = await response.json();
         setDetections(data);
         setFilteredData(data);
@@ -108,60 +106,56 @@ function Reports() {
       } finally {
         setLoading(false);
       }
-      s;
     };
 
     fetchDetections();
   }, []);
 
-  // Handle delete click
-  const handleDeleteClick = (id) => {
-    setDetectionToDelete(id);
-    setDeleteDialogOpen(true);
-  };
+  // Handle archive click
+  const handleArchiveClick = (id) => {
+    Swal.fire({
+      title: "Archive Detection",
+      text: "Are you sure you want to archive this detection record?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#27323a",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const response = await fetch(
+            `http://localhost:5000/api/detection/${id}/archive`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ archivedBy: "User" }),
+            }
+          );
 
-  // Handle delete confirmation
-  const handleDeleteConfirm = async () => {
-    try {
-      const response = await fetch(
-        `http://localhost:5000/api/detection/${detectionToDelete}`,
-        {
-          method: "DELETE",
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to archive detection");
+          }
+
+          setDetections((prevDetections) =>
+            prevDetections.filter((detection) => detection._id !== id)
+          );
+          setFilteredData((prevFilteredData) =>
+            prevFilteredData.filter((detection) => detection._id !== id)
+          );
+
+          Swal.fire("Archived!", "Detection archived successfully.", "success");
+        } catch (error) {
+          console.error("Error archiving detection:", error);
+          Swal.fire(
+            "Error",
+            "Failed to archive detection: " + error.message,
+            "error"
+          );
         }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete detection");
       }
-
-      // Remove the deleted detection from the state
-      setDetections((prevDetections) =>
-        prevDetections.filter(
-          (detection) => detection._id !== detectionToDelete
-        )
-      );
-      setFilteredData((prevFilteredData) =>
-        prevFilteredData.filter(
-          (detection) => detection._id !== detectionToDelete
-        )
-      );
-
-      // Show success message
-      alert("Detection deleted successfully");
-    } catch (error) {
-      console.error("Error deleting detection:", error);
-      alert("Failed to delete detection: " + error.message);
-    } finally {
-      setDeleteDialogOpen(false);
-      setDetectionToDelete(null);
-    }
-  };
-
-  // Handle delete cancel
-  const handleDeleteCancel = () => {
-    setDeleteDialogOpen(false);
-    setDetectionToDelete(null);
+    });
   };
 
   // Handle search (remove sa nako kay murag dili na needed )
@@ -443,62 +437,31 @@ function Reports() {
 
   //Chart data to show monthly and yearly trends
   const prepareLineChartData = () => {
-    // Create an object to store yearly totals
-    const yearlyData = {};
+    const yearlyTotals = {};
 
-    detections.forEach((detection) => {
-      const date = new Date(detection.timestamp);
-      const year = date.getFullYear();
-
-      // Initialize the year if it doesn't exist
-      if (!yearlyData[year]) {
-        yearlyData[year] = {
-          total: 0,
-          months: Array(12).fill(0),
-        };
-      }
-
-      if (detection.detection.includes("Chainsaw")) {
-        yearlyData[year].total++;
-        yearlyData[year].months[date.getMonth()]++;
+    detections.forEach((d) => {
+      const year = new Date(d.timestamp).getFullYear();
+      if (d.detection.includes("Chainsaw")) {
+        yearlyTotals[year] = (yearlyTotals[year] || 0) + 1;
       }
     });
 
-    // Get all years and sort them
-    const years = Object.keys(yearlyData).sort();
-
-    // Create datasets for each year
-    const datasets = years.map((year) => ({
-      label: year,
-      data: yearlyData[year].months,
-      borderColor: getYearColor(year),
-      backgroundColor: `${getYearColor(year)}20`, // 20 is hex for 12% opacity
-      fill: true,
-      tension: 0.4,
-      pointBackgroundColor: getYearColor(year),
-      pointBorderColor: "#fff",
-      pointHoverBackgroundColor: "#fff",
-      pointHoverBorderColor: getYearColor(year),
-      pointRadius: 4,
-      pointHoverRadius: 6,
-    }));
+    const years = Object.keys(yearlyTotals).sort();
+    const dataPoints = years.map((year) => yearlyTotals[year]);
 
     return {
-      labels: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
+      labels: years,
+      datasets: [
+        {
+          label: "Total Detections",
+          data: dataPoints,
+          borderColor: "#75CFB8",
+          backgroundColor: "rgba(117, 207, 184, 0.3)",
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: "#75CFB8",
+        },
       ],
-      datasets,
     };
   };
 
@@ -648,18 +611,18 @@ function Reports() {
           }}
         >
           <IconButton
-            onClick={() => handleDeleteClick(params.row._id)}
-            color="error"
+            onClick={() => handleArchiveClick(params.row._id)}
+            color="27323a"
             size="small"
             sx={{
               "&:hover": {
-                backgroundColor: "rgba(211, 47, 47, 0.08)",
+                backgroundColor: "rgba(255, 193, 7, 0.08)",
                 transform: "scale(1.1)",
               },
               transition: "all 0.2s ease-in-out",
             }}
           >
-            <DeleteIcon />
+            <ArchiveIcon />
           </IconButton>
         </div>
       ),
@@ -688,7 +651,7 @@ function Reports() {
         </div>
         {/* LINE CHART */}
         <div className="chart-box">
-          <h3 className="chart-title">Yearly Detection Trends Comparison</h3>
+          <h3 className="chart-title">Total Chainsaw Detections per Year</h3>
           <div style={{ position: "relative", height: "90%", width: "100%" }}>
             <Line data={prepareLineChartData()} options={lineChartOptions} />
           </div>
@@ -792,24 +755,6 @@ function Reports() {
           />
         </Box>
       </div>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          Are you sure you want to delete this detection record?
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDeleteCancel}>Cancel</Button>
-          <Button
-            onClick={handleDeleteConfirm}
-            color="error"
-            variant="contained"
-          >
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
     </div>
   );
 }

@@ -52,56 +52,54 @@ function Login({ setToken }) {
   return (
     <div className="vh-100 d-flex flex-column justify-content-between">
       {/* Main Content Section */}
-      <div className="container d-flex justify-content-center align-items-center flex-grow-1 my-4">
+      <div className="vh-100 d-flex flex-column justify-content-center align-items-center px-3">
+        {/* Logos */}
+        <div className="d-flex align-items-center mb-3">
+          <img
+            src={ecosentryLogo}
+            alt="EcoSentry Logo"
+            style={{ maxWidth: "175px", height: "auto" }}
+          />
+          <img
+            src={penroLogo}
+            alt="Penro Logo"
+            style={{ maxWidth: "100px", height: "auto" }}
+          />
+        </div>
+
+        {/* Welcome Message */}
+        <div className="text-center mb-3">
+          <h2 className="fw-bold text-center">Welcome to EcoSentry</h2>
+          <p className="text-center" style={{ fontSize: "0.85rem" }}>
+            Your platform for smarter environmental monitoring.
+          </p>
+        </div>
+
+        {/* Login Form Card */}
         <div
-          className="p-4 d-flex flex-column flex-md-row align-items-center justify-content-center"
+          className="bg-white p-4 shadow rounded"
           style={{
-            maxWidth: "800px",
             width: "100%",
-            gap: "2rem",
+            maxWidth: "400px",
           }}
         >
-          {/* Left Side: Logos and welcome msg */}
-          <div
-            className="flex-grow-1"
-            style={{ maxWidth: "320px", width: "100%" }}
-          >
-            {/* Logo Section */}
-            <div
-              className="d-flex justify-content-start align-items-center mb-4"
-              style={{ gap: "1rem" }}
-            >
-              <img
-                src={ecosentryLogo}
-                alt="EcoSentry Logo"
-                style={{ maxWidth: "100px", height: "auto" }}
-              />
-              <img
-                src={penroLogo}
-                alt="Penro Logo"
-                style={{ maxWidth: "70px", height: "auto" }}
-              />
+          {/* <h4 className="fw-bold text-center mb-4">Login</h4> */}
+
+          {error && (
+            <div className="alert alert-danger text-center py-2 mb-3">
+              {error}
             </div>
+          )}
 
-            <h2 className="fw-bold mb-2 text-start">Welcome to EcoSentry</h2>
-            <p className="text-center" style={{ fontSize: "0.85rem" }}>
-              Stay updated on environmental threats
-            </p>
+          {loading && (
+            <div className="spinner-overlay">
+              <div className="spinner"></div>
+            </div>
+          )}
 
-            {error && (
-              <div className="alert alert-danger text-center py-2">{error}</div>
-            )}
-
-            {loading && (
-              <div className="spinner-overlay">
-                <div className="spinner"></div>
-              </div>
-            )}
-          </div>
-
-          {/* Right Side: Login */}
-          {/* Login form */}
+          {/* Login Form */}
           <form onSubmit={handleLogin}>
+            {/* Username */}
             <div
               className="mb-4 input-group"
               style={{ borderBottom: "2px solid #ccc", paddingBottom: "5px" }}
@@ -132,6 +130,7 @@ function Login({ setToken }) {
               />
             </div>
 
+            {/* Password */}
             <div
               className="mb-4 input-group"
               style={{ borderBottom: "2px solid #ccc", paddingBottom: "5px" }}
@@ -195,8 +194,7 @@ function Login({ setToken }) {
         className="text-center mt-auto py-2"
         style={{ fontSize: "0.8rem", color: "#888" }}
       >
-        © 2025 Provincial Environment and Natural Resources Office. All rights
-        reserved.
+        © 2025 EcoSentry. All rights reserved. <br />
       </footer>
     </div>
   );

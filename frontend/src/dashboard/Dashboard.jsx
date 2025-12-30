@@ -1,14 +1,15 @@
 // LEAFLET MAP
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
 // CSS
 import "./style.css";
 // COMPONENTS
 import DetectionAlert from "../components/DetectionAlert";
+import { database, ref, onValue } from "../firebase-config";
 
-const canAyanCoordinates = [8.154557, 125.151347]; // Can-ayan Coordinates
+const canAyanCoordinates = [8.15673436, 125.12384374]; // Can-ayan Coordinates
 const cabanglasanCoordinates = [8.0833, 125.3]; // Cabanglasan Coordinates
 
 // Create custom icons
@@ -48,12 +49,38 @@ function Dashboard() {
   const [alertOpen, setAlertOpen] = useState(false);
   const [latestDetection, setLatestDetection] = useState(null);
   const [pageLoadTime] = useState(new Date()); // Store when the page was loaded
+  const [gpsPosition, setGpsPosition] = useState(null);
+  const [dashboardStats, setDashboardStats] = useState({
+    today: 0,
+    thisWeek: 0,
+    thisMonth: 0,
+  });
+  const markerRef = useRef();
+
+  // Helper function to get date ranges
+  const getDateRanges = () => {
+    const now = new Date();
+
+    // Today (start of day to end of day)
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1);
+
+    // This week (7 days ago from today)
+    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // This month (30 days ago from today)
+    const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    return { today, endOfToday, weekAgo, monthAgo };
+  };
 
   useEffect(() => {
-    // Function to fetch alerts
+    // Function to fetch alerts and calculate dashboard stats
     const fetchAlerts = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/detection");
+        const response = await fetch(
+          "http://localhost:5000/api/detection?includeArchived=false"
+        );
         const data = await response.json();
 
         // Filter for chainsaw alerts
@@ -61,19 +88,59 @@ function Dashboard() {
           detection.detection.includes("Chainsaw")
         );
 
+        // Calculate dashboard statistics
+        const { today, endOfToday, weekAgo, monthAgo } = getDateRanges();
+
+        const todayDetections = chainsawAlerts.filter((detection) => {
+          const detectionDate = new Date(detection.timestamp);
+          return detectionDate >= today && detectionDate <= endOfToday;
+        });
+
+        const weekDetections = chainsawAlerts.filter((detection) => {
+          const detectionDate = new Date(detection.timestamp);
+          return detectionDate >= weekAgo;
+        });
+
+        const monthDetections = chainsawAlerts.filter((detection) => {
+          const detectionDate = new Date(detection.timestamp);
+          return detectionDate >= monthAgo;
+        });
+
+        setDashboardStats({
+          today: todayDetections.length,
+          thisWeek: weekDetections.length,
+          thisMonth: monthDetections.length,
+        });
+
         // Check if there's a new alert that occurred after page load
         if (chainsawAlerts.length > 0) {
           const newestAlert = chainsawAlerts[0];
           const alertTime = new Date(newestAlert.timestamp);
+
+          // Check if the current latestDetection still exists in the fetched data
+          const currentDetectionStillExists =
+            latestDetection &&
+            chainsawAlerts.some(
+              (detection) => detection._id === latestDetection._id
+            );
 
           // Only show alert if it's newer than page load time and different from last detection
           if (
             alertTime > pageLoadTime &&
             (!latestDetection || newestAlert._id !== latestDetection._id)
           ) {
-            setLatestDetection(newestAlert);
-            setAlertOpen(true);
+            // Only trigger alert if the current detection still exists (meaning it's a truly new detection)
+            if (!latestDetection || currentDetectionStillExists) {
+              setLatestDetection(newestAlert);
+              setAlertOpen(true);
+            } else {
+              // Current detection was archived, just update to the newest one without triggering alert
+              setLatestDetection(newestAlert);
+            }
           }
+        } else {
+          // No chainsaw alerts found, clear the latest detection
+          setLatestDetection(null);
         }
 
         setAlerts(chainsawAlerts);
@@ -92,6 +159,25 @@ function Dashboard() {
     return () => clearInterval(interval);
   }, [latestDetection, pageLoadTime]);
 
+  // Replace the GPS-fetching useEffect with this:
+  useEffect(() => {
+    const fetchGps = async () => {
+      try {
+        const response = await fetch("http://localhost:5001/gps");
+        const data = await response.json();
+        if (data.lat && data.lon) {
+          setGpsPosition([parseFloat(data.lat), parseFloat(data.lon)]);
+        }
+      } catch (error) {
+        console.error("Error fetching GPS data:", error);
+      }
+    };
+
+    fetchGps(); // Initial fetch
+    const interval = setInterval(fetchGps, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
   const handleAlertClose = () => {
     setAlertOpen(false);
   };
@@ -106,8 +192,34 @@ function Dashboard() {
         detectionId={latestDetection?._id}
         device={latestDetection?.device}
         location={latestDetection?.location}
-        s
       />
+
+      {/* Floating Dashboard Cards */}
+      <div className="dashboard-cards">
+        <div className="stat-card">
+          <div className="stat-icon">📊</div>
+          <div className="stat-content">
+            <h3>Today</h3>
+            <p className="stat-number">{dashboardStats.today}</p>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon">📈</div>
+          <div className="stat-content">
+            <h3>This Week</h3>
+            <p className="stat-number">{dashboardStats.thisWeek}</p>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon">📅</div>
+          <div className="stat-content">
+            <h3>This Month</h3>
+            <p className="stat-number">{dashboardStats.thisMonth}</p>
+          </div>
+        </div>
+      </div>
 
       {/* Fullscreen Map */}
       <MapContainer
@@ -135,6 +247,19 @@ function Dashboard() {
             </div>
           </Popup>
         </Marker>
+        {/* GPS Dongle Marker */}
+        {gpsPosition && (
+          <Marker position={gpsPosition} icon={alertIcon} ref={markerRef}>
+            <Popup closeButton={false} autoPan={false}>
+              <div>
+                <strong>Device: GPS Dongle</strong>
+                <p>Live Location</p>
+                <p>Lat: {gpsPosition[0]}</p>
+                <p>Lon: {gpsPosition[1]}</p>
+              </div>
+            </Popup>
+          </Marker>
+        )}
       </MapContainer>
     </div>
   );

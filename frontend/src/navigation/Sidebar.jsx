@@ -4,15 +4,16 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Sidebar, Menu, MenuItem, sidebarClasses } from "react-pro-sidebar";
 // ICONS
 import { BiSolidDashboard } from "react-icons/bi";
-import { GoHistory } from "react-icons/go";
-import { TbLogout2 } from "react-icons/tb";
+import { TbReportAnalytics } from "react-icons/tb";
+import { FiLogOut } from "react-icons/fi";
+import { FaInfoCircle, FaInfo } from "react-icons/fa";
 // IMG
 import Logo from "../assets/EcoSentryLogo.png";
 // STYLE
 import "./style.css"; // Custom CSS for styling
 
 function CustomSidebar({ setToken }) {
-  const [isCollapsed, setIsCollapsed] = useState(false); // Sidebar state
+  const [isCollapsed, setIsCollapsed] = useState(true); // Sidebar state
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -73,14 +74,21 @@ function CustomSidebar({ setToken }) {
             Dashboard
           </MenuItem>
           <MenuItem
-            icon={<GoHistory size={25} />}
+            icon={<TbReportAnalytics size={30} />}
             onClick={() => handleNavigation("/reports")}
             className={`menu-item ${isActive("/reports") ? "active" : ""}`}
           >
             Reports
           </MenuItem>
           <MenuItem
-            icon={<TbLogout2 size={30} />}
+            icon={<FaInfo size={28} />}
+            onClick={() => handleNavigation("/about")}
+            className={`menu-item ${isActive("/about") ? "active" : ""}`}
+          >
+            About us
+          </MenuItem>
+          <MenuItem
+            icon={<FiLogOut size={27} />}
             onClick={() => handleNavigation("logout")}
             className="menu-item"
           >

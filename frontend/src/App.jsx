@@ -3,11 +3,12 @@ import { useState, useEffect } from "react";
 // PAGES
 import Login from "./login/Login";
 import Layout from "./Layout/Layout";
-import Dashboard from "./dashboard/Dashboard";
+import Dashboard from "./Dashboard/Dashboard";
 import Reports from "./reports/Reports";
 import PrivateRoute from "/PrivateRoute";
 import DetectionAlert from "./components/DetectionAlert";
-import Sidebar from "./Navigation/Sidebar";
+import About from "./about/About.jsx";
+import Sidebar from "./navigation/Sidebar";
 
 function App() {
   // Track authentication token in state
@@ -18,18 +19,34 @@ function App() {
   // Function to check for new detections
   const checkForNewDetections = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/detection");
+      const response = await fetch(
+        "http://localhost:5000/api/detection?includeArchived=false"
+      );
       const data = await response.json();
 
       if (data.length > 0) {
         const newestDetection = data[0];
 
+        // Check if the current latestDetection still exists in the fetched data
+        const currentDetectionStillExists =
+          latestDetection &&
+          data.some((detection) => detection._id === latestDetection._id);
+
         if (latestDetection && newestDetection._id !== latestDetection._id) {
-          setLatestDetection(newestDetection);
-          setAlertOpen(true);
+          // Only trigger alert if the current detection still exists (meaning it's a truly new detection)
+          if (currentDetectionStillExists) {
+            setLatestDetection(newestDetection);
+            setAlertOpen(true);
+          } else {
+            // Current detection was archived, just update to the newest one without triggering alert
+            setLatestDetection(newestDetection);
+          }
         } else if (!latestDetection) {
           setLatestDetection(newestDetection);
         }
+      } else {
+        // No detections found, clear the latest detection
+        setLatestDetection(null);
       }
     } catch (error) {
       console.error("Error fetching detections:", error);
@@ -68,6 +85,7 @@ function App() {
           <Route path="/app" element={<Layout setToken={setToken} />}>
             <Route index element={<Dashboard />} />
             <Route path="reports" element={<Reports />} />
+            <Route path="about" element={<About />} />
           </Route>
         </Route>
 
